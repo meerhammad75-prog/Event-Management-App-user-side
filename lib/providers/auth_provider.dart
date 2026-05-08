@@ -104,6 +104,7 @@ class AuthProvider extends ChangeNotifier {
   void togglePasswordVisibility() {
     obscurePassword = !obscurePassword;
     notifyListeners();
+    
   }
 
   @override
