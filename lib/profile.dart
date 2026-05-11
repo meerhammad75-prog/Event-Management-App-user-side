@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,6 +10,7 @@ import 'notification screen.dart';
 
 const String kUsernameKey = 'username';
 const String kDarkModeKey = 'dark_mode';
+String? _avatarUrl;
 
 class ProfileScreen extends StatefulWidget {
   final ValueNotifier<ThemeMode> themeModeNotifier;
@@ -40,19 +43,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadPreferences();
-  }
+    _loadDarkMode(); // ADD THIS
 
+  }
+  Future<void> _loadDarkMode() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final isDark = prefs.getBool(kDarkModeKey) ?? false;
+
+    widget.themeModeNotifier.value =
+    isDark ? ThemeMode.dark : ThemeMode.light;
+
+    setState(() {});
+  }
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
 
+    final user = FirebaseAuth.instance.currentUser;
+
+    String username = 'No Name';
+    String? avatarUrl;
+
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final data = doc.data();
+
+      username = data?['username'] ?? 'No Name';
+      avatarUrl = data?['avatar']; // 👈 ADD THIS
+    }
+
     setState(() {
-      _username = prefs.getString(kUsernameKey) ?? 'Morgan mill';
+      _username = username;
       _email = prefs.getString('user_email') ?? '';
       _avatarPath = prefs.getString('avatar_path');
+      _avatarUrl = avatarUrl; // 👈 ADD THIS
     });
-  }
-
-  bool get _isDarkMode =>
+  }  bool get _isDarkMode =>
       widget.themeModeNotifier.value == ThemeMode.dark;
 
   Future<void> _toggleDarkMode(bool value) async {
@@ -157,9 +187,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   CircleAvatar(
                     radius: 48,
                     backgroundColor: Colors.grey[300],
-                    backgroundImage: _avatarPath != null
-                        ? FileImage(File(_avatarPath!))
-                        : const AssetImage('assets/images/avatar.png')
+                      backgroundImage: _avatarUrl != null
+                      ? NetworkImage(_avatarUrl!)
+                    : const AssetImage('assets/images/avatar.png')
                     as ImageProvider,
                     child: _avatarPath == null
                         ? const Icon(Icons.person,

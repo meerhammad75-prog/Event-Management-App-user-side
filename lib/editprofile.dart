@@ -1,7 +1,16 @@
+import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
+
+// 🔥 Cloudinary setup (IMPORTANT: use your real preset name)
+final cloudinary = CloudinaryPublic(
+  "dvhhlesbl",
+  "eventapp_upload", // must match Cloudinary dashboard preset
+  cache: false,
+);
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -15,8 +24,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isSaving = false;
 
   File? _pickedImage;
+  String? _imageUrl;
 
-  static const String kUsernameKey = 'username';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -24,59 +35,101 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadSavedData();
   }
 
+  // ── LOAD USER DATA ──
   Future<void> _loadSavedData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedName = prefs.getString(kUsernameKey) ?? '';
-    final avatarPath = prefs.getString('avatar_path');
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    final data = doc.data();
+
+    if (!mounted) return;
 
     setState(() {
-      _usernameController.text = savedName;
-      if (avatarPath != null) {
-        _pickedImage = File(avatarPath);
-      }
+      _usernameController.text = data?['username'] ?? 'No Name';
+      _imageUrl = data?['avatar'];
     });
   }
 
+  // ── SAVE USERNAME ──
   Future<void> _saveChanges() async {
-    final username = _usernameController.text.trim();
-
-    if (username.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Username cannot be empty.')),
-      );
-      return;
-    }
+    final username = _usernameController.text.trim().isEmpty
+        ? "No Name"
+        : _usernameController.text.trim();
 
     setState(() => _isSaving = true);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kUsernameKey, username);
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
 
-    if (_pickedImage != null) {
-      await prefs.setString('avatar_path', _pickedImage!.path);
-    }
+      await _firestore.collection('users').doc(user.uid).set({
+        'username': username,
+        'avatar': _imageUrl,
+      }, SetOptions(merge: true));
 
-    setState(() => _isSaving = false);
+      if (!mounted) return;
 
-    if (mounted) {
+      setState(() => _isSaving = false);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Profile updated!'),
+          content: Text('Profile updated successfully!'),
           backgroundColor: Color(0xFFCC2222),
         ),
       );
+
       Navigator.pop(context, true);
+    } catch (e) {
+      setState(() => _isSaving = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
 
+  // ── PICK + UPLOAD IMAGE ──
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(source: ImageSource.gallery);
 
-    if (file != null) {
+    if (file == null) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      CloudinaryResponse response = await cloudinary.uploadFile(
+        CloudinaryFile.fromFile(
+          file.path,
+          resourceType: CloudinaryResourceType.Image,
+        ),
+      );
+
+      _imageUrl = response.secureUrl;
+
       setState(() {
         _pickedImage = File(file.path);
+        _isSaving = false;
       });
+
+      final user = _auth.currentUser;
+
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'avatar': _imageUrl,
+        }, SetOptions(merge: true));
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Image uploaded successfully")),
+      );
+    } catch (e) {
+      setState(() => _isSaving = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Upload failed: $e")),
+      );
     }
   }
 
@@ -101,7 +154,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Edit Detail',
+          'Edit Profile',
           style: TextStyle(
             color: colorScheme.onSurface,
             fontSize: 18,
@@ -113,6 +166,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           children: [
+            // ── AVATAR (NO UI CHANGE) ──
             Center(
               child: Stack(
                 children: [
@@ -121,8 +175,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     backgroundColor: colorScheme.surfaceVariant,
                     backgroundImage: _pickedImage != null
                         ? FileImage(_pickedImage!)
+                        : (_imageUrl != null
+                        ? NetworkImage(_imageUrl!)
                         : const AssetImage('assets/images/avatar.png')
-                    as ImageProvider,
+                    as ImageProvider),
                   ),
                   Positioned(
                     bottom: 0,
@@ -146,7 +202,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ],
               ),
             ),
+
             const SizedBox(height: 32),
+
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -158,20 +216,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 10),
+
             TextField(
               controller: _usernameController,
               style: TextStyle(color: colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: 'Enter username',
-                hintStyle: TextStyle(
-                    color: colorScheme.onSurface.withOpacity(0.5)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
+
             const SizedBox(height: 32),
+
             SizedBox(
               width: double.infinity,
               height: 52,

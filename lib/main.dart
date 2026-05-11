@@ -5,13 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; // will add this next
 import 'create account.dart';
 import 'home.dart';
 import 'login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
 
   // Load saved theme
   final prefs = await SharedPreferences.getInstance();
@@ -35,6 +37,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return ChangeNotifierProvider(
       create: (_) => AuthProvider(),
       child: ValueListenableBuilder<ThemeMode>(
@@ -80,5 +83,6 @@ class MyApp extends StatelessWidget {
         },
       ),
     );
+
   }
 }
