@@ -4,6 +4,7 @@ import 'package:eventmanagementapp/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'create account.dart';
 import 'home.dart';
@@ -27,7 +28,10 @@ void main() async {
 class MyApp extends StatelessWidget {
   final ValueNotifier<ThemeMode> themeNotifier;
 
-  const MyApp({super.key, required this.themeNotifier});
+  const MyApp({
+    super.key,
+    required this.themeNotifier,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -39,20 +43,36 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
 
-            // ✅ Dark Mode setup
+            // Theme setup
             themeMode: currentMode,
-            theme: ThemeData.light(),
-            darkTheme: ThemeData.dark(),
+
+            // Light Theme
+            theme: ThemeData.light().copyWith(
+              textTheme: GoogleFonts.poppinsTextTheme(
+                ThemeData.light().textTheme,
+              ),
+            ),
+
+            // Dark Theme
+            darkTheme: ThemeData.dark().copyWith(
+              textTheme: GoogleFonts.poppinsTextTheme(
+                ThemeData.dark().textTheme,
+              ),
+            ),
 
             initialRoute: '/',
+
             routes: {
               '/': (context) => SplashScreen(),
-              '/walkthrough': (context) => WalkthroughScreen(),
+
+              '/walkthrough': (context) =>
+                  WalkthroughScreen(),
+
               '/login': (context) => LoginScreen(),
 
-              // ✅ Pass notifier to HomeScreen
-              '/home': (context) =>
-                  HomeScreen(themeNotifier: themeNotifier),
+              '/home': (context) => HomeScreen(
+                themeNotifier: themeNotifier,
+              ),
 
               '/create': (context) => CreateScreen(),
             },

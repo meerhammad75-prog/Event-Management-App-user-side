@@ -68,18 +68,18 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
       appBar: AppBar(
         backgroundColor: const Color(0xFFCF3232),
         elevation: 0,
         title: const Text(
           "Business group",
-          style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-
-        // ✅ THIS IS YOUR ONLY NAVIGATION POINT (CORRECT)
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: GestureDetector(
@@ -111,24 +111,32 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ),
           ),
         ),
-
         actions: const [
           Icon(Icons.more_vert, color: Colors.white),
           SizedBox(width: 8),
         ],
       ),
-
       body: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: _polls.length,
         itemBuilder: (context, index) {
-          return _buildPollCard(_polls[index], index);
+          return _buildPollCard(context, _polls[index], index);
         },
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          const SizedBox(height: 15),
+        ],
       ),
     );
   }
 
-  Widget _buildPollCard(CommunityPoll poll, int pollIndex) {
+  Widget _buildPollCard(BuildContext context, CommunityPoll poll, int pollIndex) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       children: [
         if (pollIndex == 0)
@@ -137,32 +145,35 @@ class _CommunityScreenState extends State<CommunityScreen> {
             child: Text(
               "Today",
               style: TextStyle(
-                  color: Colors.grey.shade500, fontSize: 13),
+                  color: colorScheme.onSurface.withOpacity(0.5), fontSize: 13),
             ),
           ),
-
         Container(
-          margin:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: isDark
+                      ? Colors.black38
+                      : Colors.black.withOpacity(0.05),
                   blurRadius: 6),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Image.asset(
-                poll.imageUrl,
-                height: 190,
-                width: double.infinity,
-                fit: BoxFit.cover,
+              ClipRRect(
+                borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(14)),
+                child: Image.asset(
+                  poll.imageUrl,
+                  height: 190,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
-
               Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -170,34 +181,32 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   children: [
                     Text(
                       poll.title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: colorScheme.onSurface),
                     ),
                     const SizedBox(height: 12),
-
                     ...List.generate(poll.options.length, (optIndex) {
                       final option = poll.options[optIndex];
-                      final isSelected =
-                          poll.selectedOptionIndex == optIndex;
+                      final isSelected = poll.selectedOptionIndex == optIndex;
                       final label = String.fromCharCode(65 + optIndex);
 
                       return GestureDetector(
-                        onTap: () =>
-                            _onVote(pollIndex, optIndex),
+                        onTap: () => _onVote(pollIndex, optIndex),
                         child: Padding(
-                          padding:
-                          const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.only(bottom: 10),
                           child: Row(
                             children: [
                               SizedBox(
                                 width: 22,
                                 child: Text("$label.",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 14)),
+                                        fontSize: 14,
+                                        color: colorScheme.onSurface)),
                               ),
                               const SizedBox(width: 6),
-
                               Container(
                                 width: 22,
                                 height: 22,
@@ -206,7 +215,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                   border: Border.all(
                                     color: isSelected
                                         ? const Color(0xFFCF3232)
-                                        : Colors.grey,
+                                        : colorScheme.onSurface
+                                        .withOpacity(0.5),
                                     width: 2,
                                   ),
                                   color: isSelected
@@ -215,28 +225,25 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                 ),
                                 child: isSelected
                                     ? const Icon(Icons.circle,
-                                    color: Colors.white,
-                                    size: 10)
+                                    color: Colors.white, size: 10)
                                     : null,
                               ),
-
                               const SizedBox(width: 8),
-
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(option.text,
-                                        style: const TextStyle(
-                                            fontSize: 13)),
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: colorScheme.onSurface)),
                                     const SizedBox(height: 2),
                                     Text(
                                       option.formattedVotes,
                                       style: TextStyle(
                                           fontSize: 11,
-                                          color:
-                                          Colors.grey.shade500),
+                                          color: colorScheme.onSurface
+                                              .withOpacity(0.5)),
                                     ),
                                   ],
                                 ),
@@ -246,13 +253,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
                         ),
                       );
                     }),
-
                     Align(
                       alignment: Alignment.centerRight,
                       child: Text(
                         poll.timeAgo,
                         style: TextStyle(
-                            color: Colors.grey.shade500,
+                            color: colorScheme.onSurface.withOpacity(0.5),
                             fontSize: 12),
                       ),
                     ),

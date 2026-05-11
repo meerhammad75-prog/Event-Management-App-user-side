@@ -24,7 +24,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen> {
     },
     {
       "image": "assets/images/reminder.png",
-      "title": "Shape the Next Big Event",
+      "title": "Shape the Next\nBig Event",
       "desc": "Vote on new event ideas, favorite your picks, and never miss what matters most.",
     },
   ];
@@ -36,15 +36,15 @@ class _WalkthroughScreenState extends State<WalkthroughScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+
       body: Stack(
         children: [
           // ── White base ──────────────────────────────────────────
-          Container(color: Colors.white),
 
           // ── Pattern overlay: multiply blends black→transparent ──
           // Black pixels become invisible, red pattern shows on white
           Opacity(
-            opacity: 0.3, // ← lower = lighter pattern, raise to darken
+            opacity: 0.8, // ← lower = lighter pattern, raise to darken
             child: ColorFiltered(
               colorFilter: const ColorFilter.mode(
                 Colors.white,
@@ -98,7 +98,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen> {
                     itemBuilder: (context, index) {
                       return Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.08,
+                          horizontal: size.width * 0.097,
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -112,15 +112,17 @@ class _WalkthroughScreenState extends State<WalkthroughScreen> {
                               ),
                             ),
 
-                            SizedBox(height: size.height * 0.04),
+                            SizedBox(height: size.height * 0.01),
 
                             Text(
                               pages[index]["title"]!,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: size.width * 0.07,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black, // ← dark text on white bg
+                                fontSize: size.width * 0.084,
+                                fontWeight: FontWeight.w900,
+                                shadows: [
+                                  Shadow(offset: Offset(0.5, 0.5))
+                                ]                       ,         color: Colors.black, // ← dark text on white bg
                               ),
                             ),
 
@@ -140,7 +142,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen> {
                     },
                   ),
                 ),
-
+                SizedBox(height: MediaQuery.of(context).size.height * 0.04,),
                 // Dots
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -160,7 +162,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen> {
                   }),
                 ),
 
-                SizedBox(height: size.height * 0.02),
+                SizedBox(height: size.height * 0.04),
 
                 // Button
                 Padding(
@@ -194,7 +196,7 @@ class _WalkthroughScreenState extends State<WalkthroughScreen> {
                       style: TextStyle(fontSize: size.width * 0.045),
                     ),
                   ),
-                ),
+                ),SizedBox(height: MediaQuery.of(context).size.height * 0.04,)
               ],
             ),
           ),

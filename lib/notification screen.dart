@@ -102,59 +102,68 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   // Same helper used in FeaturesScreen and HomeTab —
   // handles both "assets/images/..." and "https://..." correctly
-  Widget _buildImage(String path) {
+  Widget _buildImage(String path, BuildContext context) {
     if (path.startsWith('http')) {
       return Image.network(
         path,
         width: 60,
         height: 60,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _imageFallback(),
+        errorBuilder: (_, __, ___) => _imageFallback(context),
       );
     }
-    if (path.isEmpty) return _imageFallback();
+
+    if (path.isEmpty) {
+      return _imageFallback(context);
+    }
+
     return Image.asset(
       path,
       width: 60,
       height: 60,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => _imageFallback(),
+      errorBuilder: (_, __, ___) => _imageFallback(context),
     );
   }
-
-  Widget _imageFallback() {
+  Widget _imageFallback(BuildContext context) {
     return Container(
       width: 60,
       height: 60,
-      color: Colors.grey[200],
+      color: Theme.of(context).dividerColor,
       child: const Icon(Icons.image, color: Colors.grey),
     );
   }
-
+  @override
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
+
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).iconTheme.color,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+
+        title: Text(
           'Notification',
           style: TextStyle(
-            color: Colors.black,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
+
       body: _buildBody(),
     );
   }
-
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
@@ -201,20 +210,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           return _NotificationCard(
             notification: notification,
-            imageWidget: _buildImage(imageUrl),
-            onTap: () async {
-              await _markAsRead(index);
-              if (event != null && context.mounted) {
-                openEventDetail(
-                  context,
-                  event,
-                  widget.favoriteEvents,
-                  widget.addedEvents,
-                  widget.onToggleFavorite,
-                  widget.onAddToCalendar,
-                );
-              }
-            },
+            imageWidget: _buildImage(imageUrl, context),            onTap: () async {
+            await _markAsRead(index);
+            if (event != null && context.mounted) {
+              openEventDetail(
+                context,
+                event,
+                widget.favoriteEvents,
+                widget.addedEvents,
+                widget.onToggleFavorite,
+                widget.onAddToCalendar,
+              );
+            }
+          },
           );
         },
       ),
@@ -241,8 +249,7 @@ class _NotificationCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(context).cardColor,          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.06),
@@ -264,9 +271,9 @@ class _NotificationCard extends StatelessWidget {
             Expanded(
               child: Text(
                 notification.message,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: Colors.black87,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                   height: 1.4,
                 ),
                 maxLines: 2,

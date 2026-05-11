@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'helpers/event_navigation.dart';
 import 'model/events.dart';
+import 'dart:io' as dart_io;
 
 class FeaturesScreen extends StatefulWidget {
   final Set<Event> favoriteEvents;
@@ -32,7 +33,7 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
     Event(
       title: "Made in Melanin! Black History Month Social",
       location: "1901 Thornridge Cir. Shiloh, Hawaii 81063",
-      startTime: DateTime(2025, 10, 28, 19, 0),  // different startTime
+      startTime: DateTime(2025, 10, 28, 19, 0),
       endTime: DateTime(2025, 10, 28, 21, 0),
       imageUrl: "assets/images/eventimage.png",
     ),
@@ -61,60 +62,73 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
 
   String _monthName(int month) {
     const months = [
-      "Jan","Feb","Mar","Apr","May","Jun",
-      "Jul","Aug","Sep","Oct","Nov","Dec"
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ];
     return months[month - 1];
   }
 
   Widget _buildImage(String path) {
+    final placeholder = (_, __, ___) => Container(
+        height: 200,
+        color: Colors.grey.shade400,
+        child: const Icon(Icons.image, size: 60, color: Colors.grey));
+
     if (path.startsWith("http")) {
       return Image.network(path,
           width: double.infinity,
           height: 200,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-              height: 200,
-              color: Colors.grey.shade300,
-              child: Icon(Icons.image, size: 60, color: Colors.grey)));
+          errorBuilder: placeholder);
+    }
+    if (path.startsWith("/")) {
+      return Image.file(dart_io.File(path),
+          width: double.infinity,
+          height: 200,
+          fit: BoxFit.cover,
+          errorBuilder: placeholder);
     }
     return Image.asset(path,
         width: double.infinity,
         height: 200,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-            height: 200,
-            color: Colors.grey.shade300,
-            child: Icon(Icons.image, size: 60, color: Colors.grey)));
+        errorBuilder: placeholder);
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
       appBar: AppBar(
-        title:
-        Text("Features", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: const Text("Features",
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
-        foregroundColor: Colors.black,
+        foregroundColor: colorScheme.onSurface,
         actions: [
           IconButton(
             onPressed: () => _showFilterDialog(context),
-            icon: Icon(Icons.tune),
+            icon: Icon(Icons.tune, color: colorScheme.onSurface),
           ),
         ],
       ),
       body: ListView.builder(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.all(12),
         itemCount: featuredEvents.length,
         itemBuilder: (context, index) =>
-            _buildEventCard(featuredEvents[index]),
+            _buildEventCard(context, featuredEvents[index]),
       ),
     );
   }
 
-  Widget _buildEventCard(Event event) {
+  Widget _buildEventCard(BuildContext context, Event event) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final isFav = widget.favoriteEvents.contains(event);
 
     return GestureDetector(
@@ -127,27 +141,26 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
         widget.onAddToCalendar,
       ),
       child: Container(
-        margin: EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
-            BoxShadow(color: Colors.black12, blurRadius: 6)
+            BoxShadow(
+                color: isDark ? Colors.black38 : Colors.black12,
+                blurRadius: 6)
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // ── IMAGE + HEART ─────────────────────────────
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.vertical(
+                  borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(14)),
                   child: _buildImage(event.imageUrl),
                 ),
-
                 Positioned(
                   top: 10,
                   right: 10,
@@ -161,13 +174,12 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                       color: isFav ? Colors.red : Colors.white,
                       size: 22,
                     ),
-                  ),                ),
+                  ),
+                ),
               ],
             ),
-
-            // ── DETAILS ──────────────────────────────────
             Padding(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -175,44 +187,42 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                     event.title,
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16),
+                        fontSize: 16,
+                        color: colorScheme.onSurface),
                   ),
-                  SizedBox(height: 8),
-
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Icon(Icons.calendar_today_outlined,
-                          size: 15, color: Colors.grey),
-                      SizedBox(width: 6),
+                          size: 15,
+                          color: colorScheme.onSurface.withOpacity(0.6)),
+                      const SizedBox(width: 6),
                       Text(_formatDateTime(event),
                           style: TextStyle(
-                              color: Colors.grey, fontSize: 12)),
+                              color: colorScheme.onSurface.withOpacity(0.6),
+                              fontSize: 12)),
                     ],
                   ),
-
-                  SizedBox(height: 6),
-
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.location_on,
+                      const Icon(Icons.location_on,
                           size: 15, color: Colors.red),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(event.location,
                             style: TextStyle(
-                                color: Colors.grey[700],
+                                color: colorScheme.onSurface.withOpacity(0.7),
                                 fontSize: 13)),
                       ),
                     ],
                   ),
-
-                  SizedBox(height: 10),
-
+                  const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _isAdded(event)
-                          ? null  // disable if already added
+                          ? null
                           : () {
                         widget.onAddToCalendar(event);
                         setState(() {});
@@ -220,16 +230,19 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isAdded(event)
                             ? Colors.grey
-                            : Color(0xFFCF3232),
+                            : const Color(0xFFCF3232),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       child: Text(
-                        _isAdded(event) ? "Added to Calendar ✓" : "Add to my calendar",
-                        style: TextStyle(color: Colors.white),
+                        _isAdded(event)
+                            ? "Added to Calendar ✓"
+                            : "Add to my calendar",
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
-                  ),                ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -237,7 +250,10 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
       ),
     );
   }
+
   void _showFilterDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     String? selectedCity;
     String? selectedState;
     String? selectedGroup;
@@ -249,8 +265,9 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
+              backgroundColor: theme.dialogBackgroundColor,
               insetPadding:
-              EdgeInsets.symmetric(horizontal: 11, vertical: 60),
+              const EdgeInsets.symmetric(horizontal: 11, vertical: 60),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -262,44 +279,58 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                       children: [
                         GestureDetector(
                             onTap: () => Navigator.pop(context),
-                            child: Icon(Icons.close, size: 22)),
+                            child: Icon(Icons.close,
+                                size: 22, color: colorScheme.onSurface)),
                         Text("Filter Events",
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                        SizedBox(width: 22),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: colorScheme.onSurface)),
+                        const SizedBox(width: 22),
                       ],
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Text("City",
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    SizedBox(height: 8),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface)),
+                    const SizedBox(height: 8),
                     _buildDropdown(
+                        context: context,
                         hint: "Select City",
                         value: selectedCity,
                         items: ["New York", "Los Angeles", "Chicago", "Houston"],
                         onChanged: (val) =>
                             setDialogState(() => selectedCity = val)),
-                    SizedBox(height: 14),
+                    const SizedBox(height: 14),
                     Text("State",
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    SizedBox(height: 8),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface)),
+                    const SizedBox(height: 8),
                     _buildDropdown(
+                        context: context,
                         hint: "Select State",
                         value: selectedState,
-                        items: ["New Jersey", "California", "Texas", "Florida"],
+                        items: [
+                          "New Jersey", "California", "Texas", "Florida"
+                        ],
                         onChanged: (val) =>
                             setDialogState(() => selectedState = val)),
-                    SizedBox(height: 14),
+                    const SizedBox(height: 14),
                     Text("Groups",
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    SizedBox(height: 8),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface)),
+                    const SizedBox(height: 8),
                     _buildDropdown(
+                        context: context,
                         hint: "Group",
                         value: selectedGroup,
                         items: ["Group A", "Group B", "Group C"],
                         onChanged: (val) =>
                             setDialogState(() => selectedGroup = val)),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Row(
                       children: [
                         Expanded(
@@ -310,28 +341,31 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                               selectedGroup = null;
                             }),
                             style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: Colors.black, width: 1.5),
+                              side: BorderSide(
+                                  color: colorScheme.onSurface, width: 1.5),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10)),
-                              padding: EdgeInsets.symmetric(vertical: 14),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 14),
                             ),
                             child: Text("Clear Filter",
                                 style: TextStyle(
-                                    color: Colors.black,
+                                    color: colorScheme.onSurface,
                                     fontWeight: FontWeight.w600)),
                           ),
                         ),
-                        SizedBox(width: 12),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () => Navigator.pop(context),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFFCF3232),
+                              backgroundColor: const Color(0xFFCF3232),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10)),
-                              padding: EdgeInsets.symmetric(vertical: 14),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            child: Text("Apply Filter",
+                            child: const Text("Apply Filter",
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600)),
@@ -350,22 +384,29 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
   }
 
   Widget _buildDropdown({
+    required BuildContext context,
     required String hint,
     required String? value,
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: colorScheme.outline),
           borderRadius: BorderRadius.circular(10)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           isExpanded: true,
-          hint: Text(hint, style: TextStyle(color: Colors.black87)),
+          hint: Text(hint,
+              style: TextStyle(
+                  color: colorScheme.onSurface.withOpacity(0.7))),
           value: value,
-          icon: Icon(Icons.keyboard_arrow_down),
+          dropdownColor: Theme.of(context).dialogBackgroundColor,
+          style: TextStyle(color: colorScheme.onSurface),
+          icon: Icon(Icons.keyboard_arrow_down,
+              color: colorScheme.onSurface),
           items: items
               .map((e) => DropdownMenuItem(value: e, child: Text(e)))
               .toList(),

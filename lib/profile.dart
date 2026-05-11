@@ -32,7 +32,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String _username = 'Morgan mill';
+  String _username = 'Unnamed User';
   String _email = '';
   String? _avatarPath;
 
@@ -128,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         return Scaffold(
           backgroundColor:
-          isDark ? const Color(0xFF121212) : Colors.white,
+          Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: SingleChildScrollView(
               child: Column(
@@ -145,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black,
+                          color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
                         ),
                       ),
                     ),
@@ -174,7 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black,
+                      color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
                     ),
                   ),
 
@@ -325,12 +325,12 @@ class _DarkModeRow extends StatelessWidget {
     return ListTile(
       leading: Icon(
         Icons.dark_mode,
-        color: isDark ? Colors.white : Colors.black,
+        color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
       ),
       title: Text(
         'Dark Mode',
         style: TextStyle(
-          color: isDark ? Colors.white : Colors.black,
+          color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
         ),
       ),
       trailing: Switch(
