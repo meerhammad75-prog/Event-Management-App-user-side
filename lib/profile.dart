@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eventmanagementapp/terms_conditions_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/events.dart';
+import 'DynamicScreen.dart';
 import 'editprofile.dart';
+import 'help_support_screen.dart';
 import 'notification screen.dart';
 
 const String kUsernameKey = 'username';
@@ -248,21 +251,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.description_outlined,
                     label: 'Privacy Policy',
                     isDark: isDark,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DynamicScreen(
+                            docId: 'privacy_policy',
+                          ),
+                        ),
+                      );
+                    },
                   ),
 
                   _MenuItem(
                     icon: Icons.description_outlined,
                     label: 'Terms & Conditions',
                     isDark: isDark,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                          const TermsConditionsScreen(),
+                        ),
+                      );
+                    },
                   ),
 
                   _MenuItem(
                     icon: Icons.help_outline,
                     label: 'Help & Support',
                     isDark: isDark,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                          const HelpSupportScreen(),
+                        ),
+                      );
+                    },
                   ),
 
                   _MenuItem(

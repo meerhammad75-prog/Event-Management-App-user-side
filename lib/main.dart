@@ -1,4 +1,6 @@
+import 'package:eventmanagementapp/privacy_policy_screen.dart';
 import 'package:eventmanagementapp/splashscreen.dart';
+import 'package:eventmanagementapp/terms_conditions_screen.dart';
 import 'package:eventmanagementapp/walkthrough.dart';
 import 'package:eventmanagementapp/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; // will add this next
 import 'create account.dart';
+import 'help_support_screen.dart';
 import 'home.dart';
 import 'login.dart';
 
@@ -78,6 +81,9 @@ class MyApp extends StatelessWidget {
               ),
 
               '/create': (context) => CreateScreen(),
+              '/privacy_policy': (context) => PrivacyPolicyScreen(),
+              '/terms_conditions': (context) => TermsConditionsScreen(),
+              '/help_support': (context) => HelpSupportScreen(),
             },
           );
         },
