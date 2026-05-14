@@ -13,6 +13,10 @@ class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
   bool obscurePassword = true;
 
+  // Role stored here after login or signup
+  String _role = 'User';
+  String get role => _role;
+
   void togglePasswordVisibility() {
     obscurePassword = !obscurePassword;
     notifyListeners();
@@ -21,7 +25,7 @@ class AuthProvider extends ChangeNotifier {
   // ─────────────────────────────
   // SIGN UP
   // ─────────────────────────────
-  Future<void> createAccount(BuildContext context) async {
+  Future<void> createAccount(BuildContext context, String selectedRole) async {
     final email = emailController.text.trim();
     final password = passwordController.text;
     final confirm = confirmPasswordController.text;
@@ -44,19 +48,19 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       // 1. Create Firebase Auth user
-      final userCredential =
-      await _auth.createUserWithEmailAndPassword(
+      final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       final user = userCredential.user;
 
-      // 2. Create Firestore user document
+      // 2. Save user + role to Firestore
       if (user != null) {
         await _firestore.collection('users').doc(user.uid).set({
           'username': 'No Name',
           'email': email,
+          'role': selectedRole,
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
@@ -95,10 +99,19 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _auth.signInWithEmailAndPassword(
+      final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      // Fetch role from Firestore after login
+      final uid = userCredential.user!.uid;
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        _role = doc.data()?['role'] ?? 'User';
+      }
+
+      notifyListeners();
 
       if (context.mounted) {
         Navigator.pushReplacementNamed(context, '/home');
@@ -117,6 +130,8 @@ class AuthProvider extends ChangeNotifier {
   // LOGOUT
   // ─────────────────────────────
   Future<void> logout() async {
+    _role = 'User';
+    notifyListeners();
     await _auth.signOut();
   }
 

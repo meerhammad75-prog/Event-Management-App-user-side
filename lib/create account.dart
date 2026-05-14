@@ -4,10 +4,19 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 
-class CreateScreen extends StatelessWidget {
+class CreateScreen extends StatefulWidget {
   static const routeName = '/create';
 
   const CreateScreen({super.key});
+
+  @override
+  State<CreateScreen> createState() => _CreateScreenState();
+}
+
+class _CreateScreenState extends State<CreateScreen> {
+  // Role dropdown state lives here in the widget, not in the provider
+  String _selectedRole = 'User';
+  final List<String> _roles = ['User', 'Admin'];
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +64,7 @@ class CreateScreen extends StatelessWidget {
                   // ── Title ──
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 24, fontWeight: FontWeight.bold),
                       children: [
                         const TextSpan(
@@ -82,7 +91,7 @@ class CreateScreen extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 70),
+                  const SizedBox(height: 40),
 
                   // ── Email ──
                   Text(
@@ -158,7 +167,48 @@ class CreateScreen extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 20),
+
+                  // ── Role Dropdown ──
+                  Text(
+                    'Role',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w500, color: textColor),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: fieldFill,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedRole,
+                        isExpanded: true,
+                        dropdownColor: isDark
+                            ? const Color(0xFF2A2A2A)
+                            : Colors.white,
+                        style: TextStyle(color: textColor, fontSize: 14),
+                        items: _roles.map((role) {
+                          return DropdownMenuItem<String>(
+                            value: role,
+                            child: Text(role),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _selectedRole = value);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
 
                   // ── Continue button ──
                   SizedBox(
@@ -168,7 +218,9 @@ class CreateScreen extends StatelessWidget {
                       onPressed: authProvider.isLoading
                           ? null
                           : () async {
-                        await authProvider.createAccount(context);
+                        // Pass selected role to createAccount
+                        await authProvider.createAccount(
+                            context, _selectedRole);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFCF3232),

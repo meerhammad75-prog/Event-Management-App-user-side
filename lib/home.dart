@@ -1,5 +1,7 @@
 import 'package:eventmanagementapp/profile.dart';
+import 'package:eventmanagementapp/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'HomeTab.dart';
@@ -68,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _getScreen() {
+  Widget _getScreen(String role) {
     switch (_selectedIndex) {
       case 0:
         return HomeTab(
@@ -86,7 +88,9 @@ class _HomeScreenState extends State<HomeScreen> {
           onAddToCalendar: _addToCalendar,
         );
       case 2:
+      // Pass role to CommunityScreen
         return CommunityScreen(
+          role: role,
           featuredEvents: [
             Event(
               title: "Made in Melanin! Black History Month Social",
@@ -142,27 +146,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _buildSettingsScreen() {
-    final isDark = widget.themeNotifier.value == ThemeMode.dark;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text("Settings")),
-      body: ListView(
-        children: [
-          SwitchListTile(
-            title: const Text("Dark Mode"),
-            value: isDark,
-            onChanged: (_) => _toggleDarkMode(),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Read role from AuthProvider
+    final role = context.watch<AuthProvider>().role;
+
     return Scaffold(
-      body: _getScreen(),
+      body: _getScreen(role),
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,

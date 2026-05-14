@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import 'AdminCommunityScreen.dart';
+import 'create event screen.dart';
+import 'create vote.dart';
 import 'group profile.dart';
 import 'model/community_poll.dart';
 import 'model/events.dart';
 
-class CommunityScreen extends StatefulWidget {
-  final String role;
+class AdminCommunityScreen extends StatefulWidget {
   final List<Event> featuredEvents;
   final Set<Event> favoriteEvents;
   final Set<Event> addedEvents;
   final Function(Event) onToggleFavorite;
   final Function(Event) onAddToCalendar;
 
-  const CommunityScreen({
+  const AdminCommunityScreen({
     super.key,
-    required this.role,
     required this.featuredEvents,
     required this.favoriteEvents,
     required this.addedEvents,
@@ -23,11 +22,11 @@ class CommunityScreen extends StatefulWidget {
   });
 
   @override
-  State<CommunityScreen> createState() => _CommunityScreenState();
+  State<AdminCommunityScreen> createState() => _AdminCommunityScreenState();
 }
 
-class _CommunityScreenState extends State<CommunityScreen> {
-  List<CommunityPoll> _polls = [
+class _AdminCommunityScreenState extends State<AdminCommunityScreen> {
+  final List<CommunityPoll> _polls = [
     CommunityPoll(
       id: "1",
       title: "What should be the next community event?",
@@ -63,87 +62,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
     ),
   ];
 
-  bool get isAdmin => widget.role == 'Admin';
-
   void _onVote(int pollIndex, int optionIndex) {
     setState(() {
       _polls[pollIndex].selectedOptionIndex = optionIndex;
     });
-  }
-
-  void _deletePoll(int pollIndex) {
-    setState(() {
-      _polls.removeAt(pollIndex);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Poll deleted')),
-    );
-  }
-
-  void _showAddPollDialog() {
-    final titleController = TextEditingController();
-    final optionAController = TextEditingController();
-    final optionBController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add New Poll'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Poll Question'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: optionAController,
-                decoration: const InputDecoration(labelText: 'Option A'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: optionBController,
-                decoration: const InputDecoration(labelText: 'Option B'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (titleController.text.isNotEmpty &&
-                    optionAController.text.isNotEmpty &&
-                    optionBController.text.isNotEmpty) {
-                  setState(() {
-                    _polls.add(CommunityPoll(
-                      id: DateTime.now().toString(),
-                      title: titleController.text,
-                      imageUrl: "assets/images/eventimage.png",
-                      options: [
-                        PollOption(text: optionAController.text, voteCount: '0'),
-                        PollOption(text: optionBController.text, voteCount: '0'),
-                      ],
-                      postedAt: DateTime.now(),
-                      selectedOptionIndex: null,
-                    ));
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFCF3232),
-              ),
-              child: const Text('Add', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -151,18 +73,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Admin gets their own dedicated screen
-    if (isAdmin) {
-      return AdminCommunityScreen(
-        featuredEvents: widget.featuredEvents,
-        favoriteEvents: widget.favoriteEvents,
-        addedEvents: widget.addedEvents,
-        onToggleFavorite: widget.onToggleFavorite,
-        onAddToCalendar: widget.onAddToCalendar,
-      );
-    }
-
-    // User view below
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
       appBar: AppBar(
@@ -208,21 +118,64 @@ class _CommunityScreenState extends State<CommunityScreen> {
           SizedBox(width: 8),
         ],
       ),
-      body: _polls.isEmpty
-          ? const Center(child: Text('No polls yet.'))
-          : ListView.builder(
+      body: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: _polls.length,
         itemBuilder: (context, index) {
           return _buildPollCard(context, _polls[index], index);
         },
       ),
-      floatingActionButton: null,
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: "vote_fab",
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => VoteScreen()));
+            },
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            backgroundColor: const Color(0xFFCF3232),
+            foregroundColor: Colors.white,
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(Icons.how_to_vote_sharp),
+                Text("Vote"),
+              ],
+            ),
+          ),
+          const SizedBox(height: 15),
+          FloatingActionButton(
+            heroTag: "event_fab",
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(
+                      builder: (context) => CreateEventScreen()));
+            },
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            backgroundColor: const Color(0xFFCF3232),
+            foregroundColor: Colors.white,
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(Icons.add),
+                Text("Event"),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildPollCard(
-      BuildContext context, CommunityPoll poll, int pollIndex) {
+  Widget _buildPollCard(BuildContext context, CommunityPoll poll, int pollIndex) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
