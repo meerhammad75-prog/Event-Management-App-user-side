@@ -8,7 +8,7 @@ import 'dart:io';
 // 🔥 Cloudinary setup (IMPORTANT: use your real preset name)
 final cloudinary = CloudinaryPublic(
   "dvhhlesbl",
-  "eventapp_upload", // must match Cloudinary dashboard preset
+  "eventapp", // must match Cloudinary dashboard preset
   cache: false,
 );
 
@@ -174,13 +174,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     radius: 55,
                     backgroundColor: colorScheme.surfaceVariant,
                     backgroundImage: _pickedImage != null
-                        ? FileImage(_pickedImage!)
+                        ? FileImage(_pickedImage!) as ImageProvider
                         : (_imageUrl != null
-                        ? NetworkImage(_imageUrl!)
-                        : const AssetImage('assets/images/avatar.png')
-                    as ImageProvider),
-                  ),
-                  Positioned(
+                        ? NetworkImage(_imageUrl!) as ImageProvider
+                        : null),  // ← no asset fallback
+                    child: _pickedImage == null && _imageUrl == null
+                        ? Icon(Icons.person, size: 55, color: colorScheme.onSurface)
+                        : null,
+                  ),                  Positioned(
                     bottom: 0,
                     right: 0,
                     child: GestureDetector(

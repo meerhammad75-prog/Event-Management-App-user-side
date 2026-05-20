@@ -150,7 +150,8 @@ class CreateEventScreen extends StatelessWidget {
     }
   }
 
-  void _submit(BuildContext context, CreateEventProvider p) {
+// Replace the existing _submit method with this:
+  Future<void> _submit(BuildContext context, CreateEventProvider p) async {
     if (!p.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -160,25 +161,36 @@ class CreateEventScreen extends StatelessWidget {
       );
       return;
     }
-    final event = p.submitEvent();
-    onEventCreated?.call(event);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Event created successfully!'),
-        backgroundColor: Color(0xFFCF3232),
-      ),
-    );
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HomeScreen(
-          themeNotifier: ValueNotifier(ThemeMode.light),
+    try {
+      final event = await p.submitEvent(); // now async
+      onEventCreated?.call(event);
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Event created successfully!'),
+          backgroundColor: Color(0xFFCF3232),
         ),
-      ),
-    );
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(
+            themeNotifier: ValueNotifier(ThemeMode.light),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create event: $e'),
+          backgroundColor: Colors.red[700],
+        ),
+      );
+    }
   }
-
   String _formatDate(DateTime? d) =>
       d == null ? '' : '${d.day}/${d.month}/${d.year}';
 
@@ -311,26 +323,40 @@ class CreateEventScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   height: 52,
-                  child: ElevatedButton(
-                    onPressed: () => _submit(context, p),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFCF3232),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  child:
+// Replace the ElevatedButton in build() with this:
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: p.isLoading ? null : () => _submit(context, p),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFCF3232),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
                       ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Create Event',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
+                      child: p.isLoading
+                          ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                          : const Text(
+                        'Create Event',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  ),                ),
 
                 const SizedBox(height: 32),
               ],

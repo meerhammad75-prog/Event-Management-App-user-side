@@ -267,12 +267,22 @@ class _VoteButton extends StatelessWidget {
         onPressed: provider.isLoading
             ? null
             : () async {
-          await provider.submitVote();
-          if (context.mounted) {
+          final success = await provider.submitVote();
+          if (!context.mounted) return;
+
+          if (success) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Vote submitted successfully!'),
+                content: Text('Poll created successfully!'),
                 backgroundColor: Color(0xFFCC2222),
+              ),
+            );
+            Navigator.pop(context); // go back to admin screen
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(provider.error ?? 'Something went wrong'),
+                backgroundColor: Colors.red[900],
               ),
             );
           }

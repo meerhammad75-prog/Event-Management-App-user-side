@@ -190,16 +190,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   CircleAvatar(
                     radius: 48,
                     backgroundColor: Colors.grey[300],
-                      backgroundImage: _avatarUrl != null
-                      ? NetworkImage(_avatarUrl!)
-                    : const AssetImage('assets/images/avatar.png')
-                    as ImageProvider,
-                    child: _avatarPath == null
-                        ? const Icon(Icons.person,
-                        size: 48, color: Colors.grey)
+                    backgroundImage: _avatarUrl != null
+                        ? NetworkImage(_avatarUrl!)
+                        : null,  // ← no asset fallback
+                    child: _avatarUrl == null
+                        ? const Icon(Icons.person, size: 48, color: Colors.grey)
                         : null,
                   ),
-
                   const SizedBox(height: 12),
 
                   Text(
