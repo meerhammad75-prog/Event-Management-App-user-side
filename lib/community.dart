@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'AdminCommunityScreen.dart';
 import 'group profile.dart';
@@ -6,7 +7,7 @@ import 'model/events.dart';
 
 class CommunityScreen extends StatefulWidget {
   final String role;
-  final List<Event> featuredEvents;
+  // featuredEvents removed – passed only to GroupProfileScreen now
   final Set<Event> favoriteEvents;
   final Set<Event> addedEvents;
   final Function(Event) onToggleFavorite;
@@ -15,7 +16,6 @@ class CommunityScreen extends StatefulWidget {
   const CommunityScreen({
     super.key,
     required this.role,
-    required this.featuredEvents,
     required this.favoriteEvents,
     required this.addedEvents,
     required this.onToggleFavorite,
@@ -27,123 +27,39 @@ class CommunityScreen extends StatefulWidget {
 }
 
 class _CommunityScreenState extends State<CommunityScreen> {
-  List<CommunityPoll> _polls = [
-    CommunityPoll(
-      id: "1",
-      title: "What should be the next community event?",
-      imageUrl: "assets/images/eventimage.png",
-      options: [
-        PollOption(text: "Business Networking Meetup", voteCount: '12k'),
-        PollOption(text: "Startup Pitch Night", voteCount: '8k'),
-      ],
-      postedAt: DateTime.now().subtract(const Duration(hours: 12)),
-      selectedOptionIndex: null,
-    ),
-    CommunityPoll(
-      id: "2",
-      title: "Which workshop should we host?",
-      imageUrl: "assets/images/eventimage.png",
-      options: [
-        PollOption(text: "Flutter Development Bootcamp", voteCount: '12k'),
-        PollOption(text: "UI/UX Design Basics", voteCount: '9k'),
-      ],
-      postedAt: DateTime.now().subtract(const Duration(hours: 12)),
-      selectedOptionIndex: null,
-    ),
-    CommunityPoll(
-      id: "3",
-      title: "Preferred community activity?",
-      imageUrl: "assets/images/eventimage.png",
-      options: [
-        PollOption(text: "Tech Talks", voteCount: '12k'),
-        PollOption(text: "Hackathons", voteCount: '7k'),
-      ],
-      postedAt: DateTime.now().subtract(const Duration(hours: 12)),
-      selectedOptionIndex: null,
-    ),
-  ];
+  List<CommunityPoll> _polls = [];
+  bool _isLoading = true;
 
   bool get isAdmin => widget.role == 'Admin';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPolls();
+  }
+
+  Future<void> _fetchPolls() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('polls')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final polls = snapshot.docs
+          .map((doc) => CommunityPoll.fromFirestore(doc))
+          .toList();
+
+      if (mounted) setState(() { _polls = polls; _isLoading = false; });
+    } catch (e) {
+      debugPrint('CommunityScreen fetch error: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   void _onVote(int pollIndex, int optionIndex) {
     setState(() {
       _polls[pollIndex].selectedOptionIndex = optionIndex;
     });
-  }
-
-  void _deletePoll(int pollIndex) {
-    setState(() {
-      _polls.removeAt(pollIndex);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Poll deleted')),
-    );
-  }
-
-  void _showAddPollDialog() {
-    final titleController = TextEditingController();
-    final optionAController = TextEditingController();
-    final optionBController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add New Poll'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Poll Question'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: optionAController,
-                decoration: const InputDecoration(labelText: 'Option A'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: optionBController,
-                decoration: const InputDecoration(labelText: 'Option B'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (titleController.text.isNotEmpty &&
-                    optionAController.text.isNotEmpty &&
-                    optionBController.text.isNotEmpty) {
-                  setState(() {
-                    _polls.add(CommunityPoll(
-                      id: DateTime.now().toString(),
-                      title: titleController.text,
-                      imageUrl: "assets/images/eventimage.png",
-                      options: [
-                        PollOption(text: optionAController.text, voteCount: '0'),
-                        PollOption(text: optionBController.text, voteCount: '0'),
-                      ],
-                      postedAt: DateTime.now(),
-                      selectedOptionIndex: null,
-                    ));
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFCF3232),
-              ),
-              child: const Text('Add', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -154,7 +70,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
     // Admin gets their own dedicated screen
     if (isAdmin) {
       return AdminCommunityScreen(
-        featuredEvents: widget.featuredEvents,
         favoriteEvents: widget.favoriteEvents,
         addedEvents: widget.addedEvents,
         onToggleFavorite: widget.onToggleFavorite,
@@ -162,7 +77,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
       );
     }
 
-    // User view below
+    // User view
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
       appBar: AppBar(
@@ -180,7 +95,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => GroupProfileScreen(
-                    events: widget.featuredEvents,
+                    events: const [],
                     favoriteEvents: widget.favoriteEvents,
                     addedEvents: widget.addedEvents,
                     onToggleFavorite: widget.onToggleFavorite,
@@ -208,7 +123,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
           SizedBox(width: 8),
         ],
       ),
-      body: _polls.isEmpty
+      body: _isLoading
+          ? const Center(
+          child: CircularProgressIndicator(color: Color(0xFFCF3232)))
+          : _polls.isEmpty
           ? const Center(child: Text('No polls yet.'))
           : ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -217,7 +135,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
           return _buildPollCard(context, _polls[index], index);
         },
       ),
-      floatingActionButton: null,
     );
   }
 
@@ -257,12 +174,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ClipRRect(
                 borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(14)),
-                child: Image.asset(
-                  poll.imageUrl,
-                  height: 190,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+                child: _buildPollImage(poll.imageUrl),
               ),
               Padding(
                 padding: const EdgeInsets.all(14),
@@ -305,8 +217,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                   border: Border.all(
                                     color: isSelected
                                         ? const Color(0xFFCF3232)
-                                        : colorScheme.onSurface
-                                        .withOpacity(0.5),
+                                        : colorScheme.onSurface.withOpacity(0.5),
                                     width: 2,
                                   ),
                                   color: isSelected
@@ -360,5 +271,26 @@ class _CommunityScreenState extends State<CommunityScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildPollImage(String url) {
+    if (url.startsWith('http')) {
+      return Image.network(url,
+          height: 190,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+              height: 190,
+              color: Colors.grey.shade300,
+              child: const Icon(Icons.image, size: 60, color: Colors.grey)));
+    }
+    return Image.asset(url,
+        height: 190,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+            height: 190,
+            color: Colors.grey.shade300,
+            child: const Icon(Icons.image, size: 60, color: Colors.grey)));
   }
 }

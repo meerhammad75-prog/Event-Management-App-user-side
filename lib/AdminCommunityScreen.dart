@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'create event screen.dart';
 import 'create vote.dart';
@@ -6,7 +7,6 @@ import 'model/community_poll.dart';
 import 'model/events.dart';
 
 class AdminCommunityScreen extends StatefulWidget {
-  final List<Event> featuredEvents;
   final Set<Event> favoriteEvents;
   final Set<Event> addedEvents;
   final Function(Event) onToggleFavorite;
@@ -14,7 +14,6 @@ class AdminCommunityScreen extends StatefulWidget {
 
   const AdminCommunityScreen({
     super.key,
-    required this.featuredEvents,
     required this.favoriteEvents,
     required this.addedEvents,
     required this.onToggleFavorite,
@@ -26,41 +25,32 @@ class AdminCommunityScreen extends StatefulWidget {
 }
 
 class _AdminCommunityScreenState extends State<AdminCommunityScreen> {
-  final List<CommunityPoll> _polls = [
-    CommunityPoll(
-      id: "1",
-      title: "What should be the next community event?",
-      imageUrl: "assets/images/eventimage.png",
-      options: [
-        PollOption(text: "Business Networking Meetup", voteCount: '12k'),
-        PollOption(text: "Startup Pitch Night", voteCount: '8k'),
-      ],
-      postedAt: DateTime.now().subtract(const Duration(hours: 12)),
-      selectedOptionIndex: null,
-    ),
-    CommunityPoll(
-      id: "2",
-      title: "Which workshop should we host?",
-      imageUrl: "assets/images/eventimage.png",
-      options: [
-        PollOption(text: "Flutter Development Bootcamp", voteCount: '12k'),
-        PollOption(text: "UI/UX Design Basics", voteCount: '9k'),
-      ],
-      postedAt: DateTime.now().subtract(const Duration(hours: 12)),
-      selectedOptionIndex: null,
-    ),
-    CommunityPoll(
-      id: "3",
-      title: "Preferred community activity?",
-      imageUrl: "assets/images/eventimage.png",
-      options: [
-        PollOption(text: "Tech Talks", voteCount: '12k'),
-        PollOption(text: "Hackathons", voteCount: '7k'),
-      ],
-      postedAt: DateTime.now().subtract(const Duration(hours: 12)),
-      selectedOptionIndex: null,
-    ),
-  ];
+  List<CommunityPoll> _polls = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPolls();
+  }
+
+  Future<void> _fetchPolls() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('polls')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final polls = snapshot.docs
+          .map((doc) => CommunityPoll.fromFirestore(doc))
+          .toList();
+
+      if (mounted) setState(() { _polls = polls; _isLoading = false; });
+    } catch (e) {
+      debugPrint('AdminCommunityScreen fetch error: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   void _onVote(int pollIndex, int optionIndex) {
     setState(() {
@@ -90,7 +80,7 @@ class _AdminCommunityScreenState extends State<AdminCommunityScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => GroupProfileScreen(
-                    events: widget.featuredEvents,
+                    events: const [],
                     favoriteEvents: widget.favoriteEvents,
                     addedEvents: widget.addedEvents,
                     onToggleFavorite: widget.onToggleFavorite,
@@ -118,7 +108,12 @@ class _AdminCommunityScreenState extends State<AdminCommunityScreen> {
           SizedBox(width: 8),
         ],
       ),
-      body: ListView.builder(
+      body: _isLoading
+          ? const Center(
+          child: CircularProgressIndicator(color: Color(0xFFCF3232)))
+          : _polls.isEmpty
+          ? const Center(child: Text('No polls yet. Create one below!'))
+          : ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: _polls.length,
         itemBuilder: (context, index) {
@@ -130,9 +125,11 @@ class _AdminCommunityScreenState extends State<AdminCommunityScreen> {
         children: [
           FloatingActionButton(
             heroTag: "vote_fab",
-            onPressed: () {
-              Navigator.push(context,
+            onPressed: () async {
+              await Navigator.push(context,
                   MaterialPageRoute(builder: (context) => VoteScreen()));
+              // Refresh polls after returning from VoteScreen
+              _fetchPolls();
             },
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
@@ -210,12 +207,7 @@ class _AdminCommunityScreenState extends State<AdminCommunityScreen> {
               ClipRRect(
                 borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(14)),
-                child: Image.asset(
-                  poll.imageUrl,
-                  height: 190,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+                child: _buildPollImage(poll.imageUrl),
               ),
               Padding(
                 padding: const EdgeInsets.all(14),
@@ -258,8 +250,7 @@ class _AdminCommunityScreenState extends State<AdminCommunityScreen> {
                                   border: Border.all(
                                     color: isSelected
                                         ? const Color(0xFFCF3232)
-                                        : colorScheme.onSurface
-                                        .withOpacity(0.5),
+                                        : colorScheme.onSurface.withOpacity(0.5),
                                     width: 2,
                                   ),
                                   color: isSelected
@@ -313,5 +304,26 @@ class _AdminCommunityScreenState extends State<AdminCommunityScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildPollImage(String url) {
+    if (url.startsWith('http')) {
+      return Image.network(url,
+          height: 190,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+              height: 190,
+              color: Colors.grey.shade300,
+              child: const Icon(Icons.image, size: 60, color: Colors.grey)));
+    }
+    return Image.asset(url,
+        height: 190,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+            height: 190,
+            color: Colors.grey.shade300,
+            child: const Icon(Icons.image, size: 60, color: Colors.grey)));
   }
 }

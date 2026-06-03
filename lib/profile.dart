@@ -66,6 +66,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     String username = 'No Name';
     String? avatarUrl;
+    // Email: prefer FirebaseAuth directly (always available), fall back to prefs
+    String email = user?.email ?? prefs.getString('user_email') ?? '';
 
     if (user != null) {
       final doc = await FirebaseFirestore.instance
@@ -74,16 +76,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .get();
 
       final data = doc.data();
-
       username = data?['username'] ?? 'No Name';
-      avatarUrl = data?['avatar']; // 👈 ADD THIS
+      avatarUrl = data?['avatar'];
     }
 
     setState(() {
       _username = username;
-      _email = prefs.getString('user_email') ?? '';
+      _email = email;
       _avatarPath = prefs.getString('avatar_path');
-      _avatarUrl = avatarUrl; // 👈 ADD THIS
+      _avatarUrl = avatarUrl;
     });
   }  bool get _isDarkMode =>
       widget.themeModeNotifier.value == ThemeMode.dark;

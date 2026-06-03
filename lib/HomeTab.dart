@@ -4,8 +4,10 @@ import 'model/events.dart';
 import 'helpers/event_navigation.dart';
 import 'dart:io' as dart_io;
 
+
 class HomeTab extends StatefulWidget {
   final List<Event> allEvents;
+  final bool isLoading;
   final Set<Event> favoriteEvents;
   final Set<Event> addedEvents;
   final Function(Event) onToggleFavorite;
@@ -14,6 +16,7 @@ class HomeTab extends StatefulWidget {
   const HomeTab({
     super.key,
     required this.allEvents,
+    this.isLoading = false,
     required this.favoriteEvents,
     required this.addedEvents,
     required this.onToggleFavorite,
@@ -94,6 +97,7 @@ class _HomeTabState extends State<HomeTab> {
               firstDay: DateTime.utc(2020),
               lastDay: DateTime.utc(2030),
               focusedDay: _focusedDay,
+              daysOfWeekHeight: 40,
               rowHeight: 36,
               selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
               onDaySelected: (selectedDay, focusedDay) {
@@ -154,8 +158,44 @@ class _HomeTabState extends State<HomeTab> {
 
           const SizedBox(height: 10),
 
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Today's Events",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
+
           Expanded(
-            child: ListView.builder(
+            child: widget.isLoading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFCF3232)))
+                : widget.allEvents.isEmpty
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.event_busy,
+                      size: 64,
+                      color: colorScheme.onSurface.withOpacity(0.3)),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No events taking place today',
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withOpacity(0.5),
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            )
+                : ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: widget.allEvents.length,
               itemBuilder: (context, index) =>

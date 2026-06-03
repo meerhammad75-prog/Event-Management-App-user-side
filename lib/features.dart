@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'helpers/event_navigation.dart';
 import 'model/events.dart';
@@ -22,29 +23,39 @@ class FeaturesScreen extends StatefulWidget {
 }
 
 class _FeaturesScreenState extends State<FeaturesScreen> {
-  final List<Event> featuredEvents = [
-    Event(
-      title: "Made in Melanin! Black History Month Social",
-      location: "1901 Thornridge Cir. Shiloh, Hawaii 81063",
-      startTime: DateTime(2025, 10, 28, 18, 0),
-      endTime: DateTime(2025, 10, 28, 20, 0),
-      imageUrl: "assets/images/eventimage.png",
-    ),
-    Event(
-      title: "Made in Melanin! Black History Month Social",
-      location: "1901 Thornridge Cir. Shiloh, Hawaii 81063",
-      startTime: DateTime(2025, 10, 28, 19, 0),
-      endTime: DateTime(2025, 10, 28, 21, 0),
-      imageUrl: "assets/images/eventimage.png",
-    ),
-    Event(
-      title: "Made in av! Black History Month Social",
-      location: "1901 Thornridge Cir. Shiloh, Hawaii 81063",
-      startTime: DateTime(2025, 10, 28, 18, 0),
-      endTime: DateTime(2025, 10, 28, 20, 0),
-      imageUrl: "assets/images/eventimage.png",
-    ),
-  ];
+  List<Event> featuredEvents = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEvents();
+  }
+
+  Future<void> _fetchEvents() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('events')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final events = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Event(
+          title: data['title'] ?? '',
+          location: data['location'] ?? '',
+          startTime: (data['startTime'] as Timestamp).toDate(),
+          endTime: (data['endTime'] as Timestamp).toDate(),
+          imageUrl: data['imageUrl'] ?? 'assets/images/eventimage.png',
+        );
+      }).toList();
+
+      if (mounted) setState(() { featuredEvents = events; _isLoading = false; });
+    } catch (e) {
+      debugPrint('FeaturesScreen fetch error: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   bool _isAdded(Event event) => widget.addedEvents.contains(event);
 
@@ -116,7 +127,26 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
+      body: _isLoading
+          ? const Center(
+          child: CircularProgressIndicator(color: Color(0xFFCF3232)))
+          : featuredEvents.isEmpty
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.event_note,
+                size: 64,
+                color: colorScheme.onSurface.withOpacity(0.3)),
+            const SizedBox(height: 16),
+            Text('No events found',
+                style: TextStyle(
+                    color: colorScheme.onSurface.withOpacity(0.5),
+                    fontSize: 15)),
+          ],
+        ),
+      )
+          : ListView.builder(
         padding: const EdgeInsets.all(12),
         itemCount: featuredEvents.length,
         itemBuilder: (context, index) =>

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -111,6 +112,10 @@ class AuthProvider extends ChangeNotifier {
         _role = doc.data()?['role'] ?? 'User';
       }
 
+      // Persist email so ProfileScreen can display it
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_email', email);
+
       notifyListeners();
 
       if (context.mounted) {
@@ -132,6 +137,8 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _role = 'User';
     notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_email');
     await _auth.signOut();
   }
 
