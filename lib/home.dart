@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:eventmanagementapp/services/notification_service.dart';
 
 import 'HomeTab.dart';
 import 'community.dart';
@@ -21,9 +22,9 @@ class HomeScreen extends StatefulWidget {
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
-
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final NotificationService _notificationService = NotificationService();
 
   // Today's events — real-time stream from Firestore
   List<Event> _todayEvents = [];
@@ -35,12 +36,26 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<Event> addedEvents = {};
 
   @override
+  @override
   void initState() {
     super.initState();
     _subscribeToTodayEvents();
-    _loadFavorites();
-  }
 
+    // Wait for auth to be ready before loading user data
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _loadFavorites();
+      _loadAddedEvents();
+    } else {
+      // Auth not ready yet — listen for it
+      FirebaseAuth.instance.authStateChanges().first.then((user) {
+        if (user != null && mounted) {
+          _loadFavorites();
+          _loadAddedEvents();
+        }
+      });
+    }
+  }
   @override
   void dispose() {
     _eventsSubscription?.cancel();
@@ -69,10 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
           startTime: (data['startTime'] as Timestamp).toDate(),
           endTime: (data['endTime'] as Timestamp).toDate(),
           imageUrl: data['imageUrl'] ?? 'assets/images/eventimage.png',
-          category:  data['category'] ?? 'Other', // ADD
-          city:      data['city']     ?? '',      // ADD
-          state:     data['state']    ?? '',      // ADD
-
+          category: data['category'] ?? 'Other',
+          city: data['city'] ?? '',
+          state: data['state'] ?? '',
         );
       }).toList();
 
@@ -81,6 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _todayEvents = events;
           _eventsLoading = false;
         });
+
+        // ← Auto-clean addedEvents when events change
+        _removeStaleAddedEvents(events);
       }
     }, onError: (e) {
       debugPrint('Error streaming today events: $e');
@@ -88,6 +105,39 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+// Removes addedEvents that no longer exist in the events collection
+  void _removeStaleAddedEvents(List<Event> currentEvents) {
+    final existingTitles = currentEvents.map((e) => e.title).toSet();
+
+    final stale = addedEvents
+        .where((e) => !existingTitles.contains(e.title))
+        .toList();
+
+    if (stale.isEmpty) return;
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    setState(() {
+      for (final e in stale) {
+        addedEvents.remove(e);
+      }
+    });
+
+    // Clean up Firestore and cancel notifications in background
+    if (uid != null) {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final e in stale) {
+        final docId = e.title.replaceAll(RegExp(r'[^\w]'), '_');
+        batch.delete(FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('addedEvents')
+            .doc(docId));
+        NotificationService.cancelReminder(e.title.hashCode);
+      }
+      batch.commit();
+    }
+  }
   // ── Load favorites from Firestore for this user ───────────────────────────
   Future<void> _loadFavorites() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -155,11 +205,44 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _addToCalendar(Event event) {
-    setState(() => addedEvents.add(event));
-  }
+  void _addToCalendar(Event event) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    debugPrint('🗓️ _addToCalendar called for ${event.title}, uid=$uid');
+    if (uid == null) return;
 
-  Future<void> _toggleDarkMode() async {
+    setState(() => addedEvents.add(event));
+
+    final docId = '${event.title}_${event.startTime.millisecondsSinceEpoch}'
+        .replaceAll(RegExp(r'[^\w]'), '_');
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('addedEvents')
+          .doc(docId)
+          .set({
+        'title': event.title,
+        'location': event.location,
+        'startTime': Timestamp.fromDate(event.startTime),
+        'endTime': Timestamp.fromDate(event.endTime),
+        'imageUrl': event.imageUrl,
+        'category': event.category,
+        'city': event.city,
+        'state': event.state,
+      });
+    } catch (e) {
+      debugPrint('Error saving added event: $e');
+    }
+
+    NotificationService.scheduleAndTrack(
+      id: event.hashCode,
+      title: event.title,
+      eventTime: event.startTime,
+      instance: _notificationService,
+      uid: uid,
+    );
+  }  Future<void> _toggleDarkMode() async {
     final prefs = await SharedPreferences.getInstance();
     if (widget.themeNotifier.value == ThemeMode.dark) {
       widget.themeNotifier.value = ThemeMode.light;
@@ -286,4 +369,64 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+Future<void> _loadAddedEvents() async {
+final uid = FirebaseAuth.instance.currentUser?.uid;
+if (uid == null) return;
+
+try {
+// Step 1 — get all saved added events for this user
+final snapshot = await FirebaseFirestore.instance
+.collection('users')
+.doc(uid)
+.collection('addedEvents')
+.get();
+
+if (snapshot.docs.isEmpty) return;
+
+// Step 2 — get all currently existing event IDs from Firestore
+final eventsSnapshot = await FirebaseFirestore.instance
+.collection('events')
+.get();
+
+final existingTitles = eventsSnapshot.docs
+.map((doc) => doc.data()['title'] as String? ?? '')
+.toSet();
+
+// Step 3 — filter out deleted events and clean up Firestore
+final validEvents = <Event>{};
+final batch = FirebaseFirestore.instance.batch();
+bool hasDeletions = false;
+
+for (final doc in snapshot.docs) {
+final data = doc.data();
+final title = data['title'] ?? '';
+
+if (existingTitles.contains(title)) {
+// Event still exists — keep it
+validEvents.add(Event(
+title: title,
+location: data['location'] ?? '',
+startTime: (data['startTime'] as Timestamp).toDate(),
+endTime: (data['endTime'] as Timestamp).toDate(),
+imageUrl: data['imageUrl'] ?? 'assets/images/eventimage.png',
+category: data['category'] ?? 'Other',
+city: data['city'] ?? '',
+state: data['state'] ?? '',
+));
+} else {
+// Event was deleted — remove from user's addedEvents and cancel notification
+batch.delete(doc.reference);
+NotificationService.cancelReminder(
+'${title}_${(data['startTime'] as Timestamp).millisecondsSinceEpoch}'.hashCode,
+);
+hasDeletions = true;
 }
+}
+
+// Step 4 — commit deletions if any
+if (hasDeletions) await batch.commit();
+
+if (mounted) setState(() => addedEvents = validEvents);
+} catch (e) {
+debugPrint('Error loading added events: $e');
+}}}

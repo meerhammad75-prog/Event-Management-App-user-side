@@ -229,10 +229,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
         backgroundColor: const Color(0xFFCF3232),
         elevation: 0,
         title: const Text(
-          "Business group",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        leading: Padding(
+          "Community",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold,),
+        ),centerTitle: true,
+    /*    leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: GestureDetector(
             onTap: () {
@@ -265,7 +265,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         actions: const [
           Icon(Icons.more_vert, color: Colors.white),
           SizedBox(width: 8),
-        ],
+        ],*/
       ),
       body: _isLoading
           ? const Center(

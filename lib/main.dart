@@ -13,7 +13,7 @@ import 'create account.dart';
 import 'help_support_screen.dart';
 import 'home.dart';
 import 'login.dart';
-
+import 'package:eventmanagementapp/services/notification_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -27,6 +27,7 @@ Future<void> main() async {
   final themeNotifier = ValueNotifier<ThemeMode>(
     isDark ? ThemeMode.dark : ThemeMode.light,
   );
+  await NotificationService.init();
 
   runApp(MyApp(themeNotifier: themeNotifier));
 }class MyApp extends StatelessWidget {

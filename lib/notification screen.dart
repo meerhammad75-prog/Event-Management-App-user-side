@@ -1,11 +1,9 @@
-// lib/screens/notifications_screen.dart
-
-import 'package:eventmanagementapp/services/notification%20service.dart';
+import 'package:eventmanagementapp/services/notification_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../model/events.dart';
 import 'model/notification.dart';
 import '../helpers/event_navigation.dart';
-
 
 class NotificationsScreen extends StatefulWidget {
   final List<Event> allEvents;
@@ -41,14 +39,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _loadNotifications() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
     try {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
       });
-      final data = await _service.fetchNotifications();
+
+      await _service.loadNotifications(uid);
+
       setState(() {
-        _notifications = data;
+        _notifications = List.from(_service.notifications);
         _isLoading = false;
       });
     } catch (e) {
@@ -60,9 +63,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _markAsRead(int index) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
     final n = _notifications[index];
     if (n.isRead) return;
-    await _service.markAsRead(n.id);
+
+    await _service.markAsRead(n.id, uid);
+
     setState(() {
       _notifications[index] = NotificationModel(
         id: n.id,
@@ -74,7 +82,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
   }
 
-  // Cycles through allEvents by index — uses whichever images your app already has
   String _imageUrlFor(NotificationModel notification, int index) {
     if (widget.allEvents.isEmpty) return '';
     if (notification.eventId != null && notification.eventId!.isNotEmpty) {
@@ -87,7 +94,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return widget.allEvents[index % widget.allEvents.length].imageUrl;
   }
 
-  // Finds the Event linked to this notification (for navigation)
   Event? _eventFor(NotificationModel notification, int index) {
     if (widget.allEvents.isEmpty) return null;
     if (notification.eventId != null && notification.eventId!.isNotEmpty) {
@@ -100,8 +106,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return widget.allEvents[index % widget.allEvents.length];
   }
 
-  // Same helper used in FeaturesScreen and HomeTab —
-  // handles both "assets/images/..." and "https://..." correctly
   Widget _buildImage(String path, BuildContext context) {
     if (path.startsWith('http')) {
       return Image.network(
@@ -112,11 +116,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         errorBuilder: (_, __, ___) => _imageFallback(context),
       );
     }
-
-    if (path.isEmpty) {
-      return _imageFallback(context);
-    }
-
+    if (path.isEmpty) return _imageFallback(context);
     return Image.asset(
       path,
       width: 60,
@@ -125,6 +125,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       errorBuilder: (_, __, ___) => _imageFallback(context),
     );
   }
+
   Widget _imageFallback(BuildContext context) {
     return Container(
       width: 60,
@@ -133,24 +134,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: const Icon(Icons.image, color: Colors.grey),
     );
   }
-  @override
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Theme.of(context).iconTheme.color,
-          ),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
-
         title: Text(
           'Notification',
           style: TextStyle(
@@ -160,10 +155,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ),
       ),
-
       body: _buildBody(),
     );
   }
+
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
@@ -182,8 +177,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               onPressed: _loadNotifications,
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFCC2222)),
-              child: const Text('Retry',
-                  style: TextStyle(color: Colors.white)),
+              child: const Text('Retry', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -192,8 +186,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     if (_notifications.isEmpty) {
       return const Center(
-        child: Text('No notifications yet.',
-            style: TextStyle(color: Colors.grey)),
+        child: Text('No notifications yet.', style: TextStyle(color: Colors.grey)),
       );
     }
 
@@ -210,19 +203,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           return _NotificationCard(
             notification: notification,
-            imageWidget: _buildImage(imageUrl, context),            onTap: () async {
-            await _markAsRead(index);
-            if (event != null && context.mounted) {
-              openEventDetail(
-                context,
-                event,
-                widget.favoriteEvents,
-                widget.addedEvents,
-                widget.onToggleFavorite,
-                widget.onAddToCalendar,
-              );
-            }
-          },
+            imageWidget: _buildImage(imageUrl, context),
+            onTap: () async {
+              await _markAsRead(index);
+              if (event != null && context.mounted) {
+                openEventDetail(
+                  context,
+                  event,
+                  widget.favoriteEvents,
+                  widget.addedEvents,
+                  widget.onToggleFavorite,
+                  widget.onAddToCalendar,
+                );
+              }
+            },
           );
         },
       ),
@@ -249,7 +243,8 @@ class _NotificationCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.06),
@@ -260,14 +255,11 @@ class _NotificationCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Event image — asset or network, handled by _buildImage
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: imageWidget,
             ),
             const SizedBox(width: 12),
-
-            // Message
             Expanded(
               child: Text(
                 notification.message,
@@ -281,21 +273,17 @@ class _NotificationCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-
-            // Unread dot + time
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 if (!notification.isRead)
-                  const Icon(Icons.circle,
-                      color: Color(0xFFCC2222), size: 10),
+                  const Icon(Icons.circle, color: Color(0xFFCC2222), size: 10),
                 const SizedBox(height: 4),
                 Text(
                   notification.time,
                   style: TextStyle(
                     fontSize: 12,
-                    color:
-                    notification.isRead ? Colors.grey : Colors.black87,
+                    color: notification.isRead ? Colors.grey : Colors.black87,
                   ),
                 ),
               ],
