@@ -13,23 +13,27 @@ import 'create account.dart';
 import 'help_support_screen.dart';
 import 'home.dart';
 import 'login.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
 
-  // Load saved theme
+  // Load ..env file
+  await dotenv.load(fileName: "..env");
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   final prefs = await SharedPreferences.getInstance();
   final isDark = prefs.getBool('dark_mode') ?? false;
 
-  // Theme controller
   final themeNotifier = ValueNotifier<ThemeMode>(
     isDark ? ThemeMode.dark : ThemeMode.light,
   );
 
   runApp(MyApp(themeNotifier: themeNotifier));
 }
-
 class MyApp extends StatelessWidget {
   final ValueNotifier<ThemeMode> themeNotifier;
 

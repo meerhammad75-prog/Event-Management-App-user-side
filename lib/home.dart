@@ -69,6 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
           startTime: (data['startTime'] as Timestamp).toDate(),
           endTime: (data['endTime'] as Timestamp).toDate(),
           imageUrl: data['imageUrl'] ?? 'assets/images/eventimage.png',
+          category:  data['category'] ?? 'Other', // ADD
+          city:      data['city']     ?? '',      // ADD
+          state:     data['state']    ?? '',      // ADD
+
         );
       }).toList();
 

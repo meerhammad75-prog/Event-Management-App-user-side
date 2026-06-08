@@ -296,6 +296,36 @@ class CreateEventScreen extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
+                _Label('City', isDark: isDark),
+                const SizedBox(height: 8),
+                _DropdownField(
+                  value: p.cityController.text.isEmpty ? null : p.cityController.text,
+                  hint: 'Select City',
+                  items: ['Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Peshawar'],
+                  onChanged: (val) {
+                    p.cityController.text = val ?? '';
+                    p.notifyListeners();
+                  },
+                  isDark: isDark,
+                ),
+
+                const SizedBox(height: 20),
+
+                _Label('State', isDark: isDark),
+                const SizedBox(height: 8),
+                _DropdownField(
+                  value: p.stateController.text.isEmpty ? null : p.stateController.text,
+                  hint: 'Select State',
+                  items: ['Punjab', 'Sindh', 'KPK', 'Balochistan', "Federal"],
+                  onChanged: (val) {
+                    p.stateController.text = val ?? '';
+                    p.notifyListeners();
+                  },
+                  isDark: isDark,
+                ),
+
+                const SizedBox(height: 20),
+
                 _Label('Event Detail', isDark: isDark),
                 const SizedBox(height: 8),
                 _Field(
@@ -555,6 +585,52 @@ class _ImageBox extends StatelessWidget {
               style: TextStyle(fontSize: 13, color: iconColor),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+class _DropdownField extends StatelessWidget {
+  final String? value;
+  final String hint;
+  final List<String> items;
+  final ValueChanged<String?> onChanged;
+  final bool isDark;
+
+  const _DropdownField({
+    required this.value,
+    required this.hint,
+    required this.items,
+    required this.onChanged,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fieldFill   = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+    final textColor   = isDark ? Colors.white : Colors.black87;
+    final hintColor   = isDark ? Colors.grey.shade600 : Colors.grey.shade400;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: fieldFill,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: value,
+          hint: Text(hint, style: TextStyle(fontSize: 14, color: hintColor)),
+          style: TextStyle(fontSize: 14, color: textColor),
+          dropdownColor: fieldFill,
+          icon: Icon(Icons.keyboard_arrow_down, color: hintColor),
+          items: items
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
+          onChanged: onChanged,
         ),
       ),
     );

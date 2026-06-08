@@ -23,11 +23,13 @@ class FeaturesScreen extends StatefulWidget {
   State<FeaturesScreen> createState() => _FeaturesScreenState();
 }
 
+
 class _FeaturesScreenState extends State<FeaturesScreen> {
   List<Event> featuredEvents = [];
   bool _isLoading = true;
   StreamSubscription<QuerySnapshot>? _eventsSub;
-
+  String? _activeCity;
+  String? _activeState;
   @override
   void initState() {
     super.initState();
@@ -54,6 +56,9 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
           startTime: (data['startTime'] as Timestamp).toDate(),
           endTime: (data['endTime'] as Timestamp).toDate(),
           imageUrl: data['imageUrl'] ?? 'assets/images/eventimage.png',
+          category:  data['category'] ?? 'Other', // ADD
+          city:      data['city']     ?? '',
+          state:     data['state']    ?? '',
         );
       }).toList();
 
@@ -153,12 +158,29 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
           ],
         ),
       )
-          : ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: featuredEvents.length,
-        itemBuilder: (context, index) =>
-            _buildEventCard(context, featuredEvents[index]),
-      ),
+          : Builder(builder: (context) {
+        final visibleEvents = featuredEvents.where((e) {
+          if (_activeCity  != null && e.city  != _activeCity)  return false;
+          if (_activeState != null && e.state != _activeState) return false;
+          return true;
+        }).toList();
+        return visibleEvents.isEmpty
+            ? Center(
+          child: Text(
+            'No events for selected filter',
+            style: TextStyle(
+              color: colorScheme.onSurface.withOpacity(0.5),
+              fontSize: 15,
+            ),
+          ),
+        )
+            : ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: visibleEvents.length,
+          itemBuilder: (context, index) =>
+              _buildEventCard(context, visibleEvents[index]),
+        );
+      }),
     );
   }
 
@@ -291,8 +313,8 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
   void _showFilterDialog(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    String? selectedCity;
-    String? selectedState;
+    String? selectedCity = _activeCity;
+    String? selectedState = _activeState;
     String? selectedGroup;
 
     showDialog(
@@ -350,7 +372,7 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                         hint: "Select State",
                         value: selectedState,
                         items: [
-                          "Punjab", "Sindh", "KPK", "Balochistan"
+                          "Punjab", "Sindh", "KPK", "Balochistan", "Federal"
                         ],
                         onChanged: (val) =>
                             setDialogState(() => selectedState = val)),
@@ -372,11 +394,17 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => setDialogState(() {
-                              selectedCity = null;
-                              selectedState = null;
-                              selectedGroup = null;
-                            }),
+                            onPressed: () {
+                              setState(() {
+                                _activeCity  = null;
+                                _activeState = null;
+                              });
+                              setDialogState(() {
+                                selectedCity  = null;
+                                selectedState = null;
+                                selectedGroup = null;
+                              });
+                            },
                             style: OutlinedButton.styleFrom(
                               side: BorderSide(
                                   color: colorScheme.onSurface, width: 1.5),
@@ -394,7 +422,13 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () {
+                              setState(() {
+                                _activeCity  = selectedCity;
+                                _activeState = selectedState;
+                              });
+                              Navigator.pop(context);
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFCF3232),
                               shape: RoundedRectangleBorder(

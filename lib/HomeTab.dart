@@ -23,14 +23,18 @@ class HomeTab extends StatefulWidget {
     required this.onAddToCalendar,
   });
 
+
   @override
   State<HomeTab> createState() => _HomeTabState();
 }
-
 class _HomeTabState extends State<HomeTab> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   bool isCalendarView = true;
+  String?      _activeCity;
+  String?      _activeState;
+  Set<String>  _activeCategories = {};
+
 
   static const List<Color> _dotColors = [
     Colors.green,
@@ -195,12 +199,47 @@ class _HomeTabState extends State<HomeTab> {
                 ],
               ),
             )
-                : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: widget.allEvents.length,
-              itemBuilder: (context, index) =>
-                  _buildEventCard(context, widget.allEvents[index]),
-            ),
+                : Builder(builder: (context) {
+              final visibleEvents = _activeCategories.isEmpty
+                  ? widget.allEvents
+                  : widget.allEvents
+                  .where((e) => _activeCategories.contains(e.category))
+                  .toList();
+              return visibleEvents.isEmpty
+                  ? Center(
+                child: Text(
+                  'No events for selected category',
+                  style: TextStyle(
+                    color: colorScheme.onSurface.withOpacity(0.5),
+                    fontSize: 15,
+                  ),
+                ),
+              )
+                  : Builder(builder: (context) {
+                final visibleEvents = widget.allEvents.where((e) {
+                  if (_activeCity != null && e.city != _activeCity) return false;
+                  if (_activeState != null && e.state != _activeState) return false;
+                  if (_activeCategories.isNotEmpty && !_activeCategories.contains(e.category)) return false;
+                  return true;
+                }).toList();
+                return visibleEvents.isEmpty
+                    ? Center(
+                  child: Text(
+                    'No events for selected filter',
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withOpacity(0.5),
+                      fontSize: 15,
+                    ),
+                  ),
+                )
+                    : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: visibleEvents.length,
+                  itemBuilder: (context, index) =>
+                      _buildEventCard(context, visibleEvents[index]),
+                );
+              });
+            }),
           ),
         ],
       ),
@@ -363,11 +402,10 @@ class _HomeTabState extends State<HomeTab> {
   void _showFilterDialog(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    String? selectedCity;
-    String? selectedState;
+    String? selectedCity = _activeCity;
+    String? selectedState = _activeState;
     String? selectedGroup;
-    Set<String> selectedCategories = {'Business'};
-
+    Set<String> selectedCategories = Set.from(_activeCategories);
     showDialog(
       context: context,
       barrierColor: Colors.black45,
@@ -437,7 +475,7 @@ class _HomeTabState extends State<HomeTab> {
                             hint: "Select State",
                             value: selectedState,
                             items: const [
-                              "Punjab", "Sindh", "KPK", "Balochistan"
+                              "Punjab", "Sindh", "KPK", "Balochistan", "Federal"
                             ],
                             onChanged: (val) =>
                                 setDialogState(() => selectedState = val),
@@ -485,14 +523,18 @@ class _HomeTabState extends State<HomeTab> {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () {
+                                    setState(() {
+                                      _activeCity       = null;
+                                      _activeState      = null;
+                                      _activeCategories = {};
+                                    });
                                     setDialogState(() {
-                                      selectedCity = null;
-                                      selectedState = null;
-                                      selectedGroup = null;
+                                      selectedCity       = null;
+                                      selectedState      = null;
+                                      selectedGroup      = null;
                                       selectedCategories.clear();
                                     });
-                                  },
-                                  style: OutlinedButton.styleFrom(
+                                  },                                  style: OutlinedButton.styleFrom(
                                     side: BorderSide(
                                         color: colorScheme.onSurface, width: 1.5),
                                     shape: RoundedRectangleBorder(
@@ -513,8 +555,14 @@ class _HomeTabState extends State<HomeTab> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: ElevatedButton.styleFrom(
+                                  onPressed: () {
+                                    setState(() {
+                                      _activeCity       = selectedCity;
+                                      _activeState      = selectedState;
+                                      _activeCategories = Set.from(selectedCategories);
+                                    });
+                                    Navigator.pop(context);
+                                  },                                  style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFCF3232),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),

@@ -3,13 +3,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../model/events.dart';
 import '../services/cloudinary_service.dart';
+import '../services/ai_category_service.dart';
 
 class CreateEventProvider extends ChangeNotifier {
   // ── Form Controllers ──────────────────────────────────────────────────────
   final TextEditingController titleController    = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController detailController   = TextEditingController();
-
+  final TextEditingController cityController  = TextEditingController();
+  final TextEditingController stateController = TextEditingController();
   // ── Picker State ──────────────────────────────────────────────────────────
   DateTime?  selectedDate;
   TimeOfDay? selectedTime;
@@ -84,6 +86,11 @@ class CreateEventProvider extends ChangeNotifier {
       final detail   = detailController.text.trim();
       final uid      = FirebaseAuth.instance.currentUser?.uid ?? '';
 
+// Auto-categorize using AI
+      final category = await AiCategoryService.categorize(
+        titleController.text.trim(),
+        detailController.text.trim(),
+      );
       // 3. Save to Firestore 'events' collection
       final docRef = await FirebaseFirestore.instance
           .collection('events')
@@ -97,6 +104,10 @@ class CreateEventProvider extends ChangeNotifier {
         'endTime':    Timestamp.fromDate(end),
         'createdBy':  uid,
         'createdAt':  FieldValue.serverTimestamp(),
+        'category':   category, // ADD THIS LINE
+        'city':     cityController.text.trim(),
+        'state':    stateController.text.trim(),
+
       });
 
       debugPrint('Event saved to Firestore: ${docRef.id}');
@@ -112,6 +123,8 @@ class CreateEventProvider extends ChangeNotifier {
 
       createdEvents.add(event);
       _reset();
+      cityController.clear();
+      stateController.clear();
       return event;
 
     } catch (e) {
@@ -141,6 +154,8 @@ class CreateEventProvider extends ChangeNotifier {
     titleController.dispose();
     locationController.dispose();
     detailController.dispose();
+    cityController.dispose();
+    stateController.dispose();
     super.dispose();
   }
 }

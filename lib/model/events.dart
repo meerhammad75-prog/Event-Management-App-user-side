@@ -4,6 +4,9 @@ class Event {
   final DateTime startTime;
   final DateTime endTime;
   final String imageUrl;
+  final String category; // ADD
+  final String city;     // ADD
+  final String state;
 
   Event({
     required this.title,
@@ -11,6 +14,10 @@ class Event {
     required this.startTime,
     required this.endTime,
     required this.imageUrl,
+    this.category = 'Other', // ADD
+    this.city     = '',      // ADD
+    this.state    = '',      // ADD
+
   });
 
   @override
