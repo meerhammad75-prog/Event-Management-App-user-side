@@ -336,7 +336,7 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                         context: context,
                         hint: "Select City",
                         value: selectedCity,
-                        items: ["New York", "Los Angeles", "Chicago", "Houston"],
+                        items: ["Lahore", "Karachi", "Islamabad", "Rawalpindi", "Peshawar"],
                         onChanged: (val) =>
                             setDialogState(() => selectedCity = val)),
                     const SizedBox(height: 14),
@@ -350,7 +350,7 @@ class _FeaturesScreenState extends State<FeaturesScreen> {
                         hint: "Select State",
                         value: selectedState,
                         items: [
-                          "New Jersey", "California", "Texas", "Florida"
+                          "Punjab", "Sindh", "KPK", "Balochistan"
                         ],
                         onChanged: (val) =>
                             setDialogState(() => selectedState = val)),

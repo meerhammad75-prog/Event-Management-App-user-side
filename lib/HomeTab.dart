@@ -421,7 +421,7 @@ class _HomeTabState extends State<HomeTab> {
                             hint: "Select City",
                             value: selectedCity,
                             items: const [
-                              "New York", "Los Angeles", "Chicago", "Houston"
+                              "Lahore", "Karachi", "Islamabad", "Rawalpindi", "Peshawar"
                             ],
                             onChanged: (val) =>
                                 setDialogState(() => selectedCity = val),
@@ -437,7 +437,7 @@ class _HomeTabState extends State<HomeTab> {
                             hint: "Select State",
                             value: selectedState,
                             items: const [
-                              "New Jersey", "California", "Texas", "Florida"
+                              "Punjab", "Sindh", "KPK", "Balochistan"
                             ],
                             onChanged: (val) =>
                                 setDialogState(() => selectedState = val),
