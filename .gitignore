@@ -32,10 +32,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
-# Environment variables
-.env
-.env.*
-!.env.example
+
 
 # Symbolication related
 app.*.symbols

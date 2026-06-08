@@ -13,13 +13,9 @@ import 'create account.dart';
 import 'help_support_screen.dart';
 import 'home.dart';
 import 'login.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Load ..env file
-  await dotenv.load(fileName: "..env");
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -33,8 +29,7 @@ Future<void> main() async {
   );
 
   runApp(MyApp(themeNotifier: themeNotifier));
-}
-class MyApp extends StatelessWidget {
+}class MyApp extends StatelessWidget {
   final ValueNotifier<ThemeMode> themeNotifier;
 
   const MyApp({

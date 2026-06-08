@@ -293,9 +293,17 @@ class CreateEventScreen extends StatelessWidget {
                   hint: '1901 Thornridge Cir. Shiloh, Hawaii 81063',
                   isDark: isDark,
                 ),
-
                 const SizedBox(height: 20),
-
+                _Label('Category', isDark: isDark),
+                const SizedBox(height: 8),
+                _DropdownField(
+                  value: p.selectedCategory == 'Other' ? null : p.selectedCategory,
+                  hint: 'Select Category',
+                  items: ['Religious', 'Business', 'Fitness', 'Education', 'Community', 'Other'],
+                  onChanged: (val) => p.setCategory(val ?? 'Other'),
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 20),
                 _Label('City', isDark: isDark),
                 const SizedBox(height: 8),
                 _DropdownField(
