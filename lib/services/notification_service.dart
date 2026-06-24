@@ -46,7 +46,6 @@ class NotificationService {
     required DateTime eventTime,
   }) async {
     await init();
-//
     final reminderTime = eventTime.subtract(const Duration(hours: 1));
 
     if (reminderTime.isBefore(DateTime.now())) return;
