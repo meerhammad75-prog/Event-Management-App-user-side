@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventmanagementapp/profile.dart';
 import 'package:eventmanagementapp/providers/auth_provider.dart';
+import 'package:eventmanagementapp/services/fcm_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -39,6 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    FcmService.saveToken(); // ← ADD
+
     _subscribeToTodayEvents();
 
     // Wait for auth to be ready before loading user data
@@ -87,6 +90,8 @@ class _HomeScreenState extends State<HomeScreen> {
           category: data['category'] ?? 'Other',
           city: data['city'] ?? '',
           state: data['state'] ?? '',
+          description: data['detail'] ?? '', // ← ADD
+
         );
       }).toList();
 
@@ -294,6 +299,8 @@ class _HomeScreenState extends State<HomeScreen> {
           addedEvents: addedEvents,
           onToggleFavorite: _toggleFavorite,
           onAddToCalendar: _addToCalendar,
+          onSwitchTab: (index) => setState(() => _selectedIndex = index), // ← ADD
+
         );
       default:
         return HomeTab(

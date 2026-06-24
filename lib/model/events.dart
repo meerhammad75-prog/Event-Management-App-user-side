@@ -7,6 +7,7 @@ class Event {
   final String category; // ADD
   final String city;     // ADD
   final String state;
+  final String description;
 
   Event({
     required this.title,
@@ -17,6 +18,7 @@ class Event {
     this.category = 'Other', // ADD
     this.city     = '',      // ADD
     this.state    = '',      // ADD
+    this.description = '', // ← ADD
 
   });
 

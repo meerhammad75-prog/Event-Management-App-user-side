@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventmanagementapp/services/notification_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   final NotificationService _service = NotificationService();
 
   List<NotificationModel> _notifications = [];
+  List<Event> _allEventsFromFirestore = []; // ← ADD
+
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -36,8 +39,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     _loadNotifications();
-  }
+    _loadAllEvents(); // ← ADD
 
+  }
+  Future<void> _loadAllEvents() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('events')
+          .get();
+
+      final events = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Event(
+          title: data['title'] ?? '',
+          location: data['location'] ?? '',
+          startTime: (data['startTime'] as Timestamp).toDate(),
+          endTime: (data['endTime'] as Timestamp).toDate(),
+          imageUrl: data['imageUrl'] ?? 'assets/images/eventimage.png',
+          category: data['category'] ?? 'Other',
+          city: data['city'] ?? '',
+          state: data['state'] ?? '',
+          description: data['detail'] ?? '',
+        );
+      }).toList();
+
+      if (mounted) setState(() => _allEventsFromFirestore = events);
+    } catch (e) {
+      debugPrint('Error loading all events: $e');
+    }
+  }
   Future<void> _loadNotifications() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -83,28 +113,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   String _imageUrlFor(NotificationModel notification, int index) {
-    if (widget.allEvents.isEmpty) return '';
+    // Search in all events from Firestore
     if (notification.eventId != null && notification.eventId!.isNotEmpty) {
-      final match = widget.allEvents.firstWhere(
-            (e) => e.title == notification.eventId,
-        orElse: () => widget.allEvents[index % widget.allEvents.length],
-      );
-      return match.imageUrl;
+      try {
+        return _allEventsFromFirestore
+            .firstWhere((e) => e.title == notification.eventId)
+            .imageUrl;
+      } catch (_) {}
     }
+    // Fallback to today's events
+    if (widget.allEvents.isEmpty) return '';
     return widget.allEvents[index % widget.allEvents.length].imageUrl;
   }
 
   Event? _eventFor(NotificationModel notification, int index) {
-    if (widget.allEvents.isEmpty) return null;
+    // Search in all events from Firestore
     if (notification.eventId != null && notification.eventId!.isNotEmpty) {
       try {
-        return widget.allEvents.firstWhere(
-              (e) => e.title == notification.eventId,
-        );
+        return _allEventsFromFirestore
+            .firstWhere((e) => e.title == notification.eventId);
       } catch (_) {}
     }
+    // Fallback to today's events
+    if (widget.allEvents.isEmpty) return null;
     return widget.allEvents[index % widget.allEvents.length];
   }
+
 
   Widget _buildImage(String path, BuildContext context) {
     if (path.startsWith('http')) {
@@ -206,7 +240,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             imageWidget: _buildImage(imageUrl, context),
             onTap: () async {
               await _markAsRead(index);
-              if (event != null && context.mounted) {
+              if (!context.mounted) return;
+
+              // Poll notification → go back with 'community' result
+              if (notification.id.startsWith('poll_')) {
+                Navigator.pop(context, 'community');
+                return;
+              }
+
+              // Event notification → open event detail
+              if (event != null) {
                 openEventDetail(
                   context,
                   event,
@@ -216,8 +259,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   widget.onAddToCalendar,
                 );
               }
-            },
-          );
+            },          );
         },
       ),
     );

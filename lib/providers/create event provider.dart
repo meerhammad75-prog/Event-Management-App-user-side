@@ -121,6 +121,8 @@ class CreateEventProvider extends ChangeNotifier {
         category:  selectedCategory,
         city:      cityController.text.trim(),
         state:     stateController.text.trim(),
+        description: detail, // ← ADD
+
       );
 
       createdEvents.add(event);

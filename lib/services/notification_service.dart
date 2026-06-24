@@ -128,25 +128,47 @@ class NotificationService {
           .collection('users')
           .doc(uid)
           .collection('notifications')
-
           .get();
 
       _localNotifications.clear();
-      _localNotifications.addAll(snapshot.docs.map((doc) {
-        final data = doc.data();
-        return NotificationModel(
-          id: data['id'] ?? '',
-          message: data['message'] ?? '',
-          eventId: data['eventId'] ?? '',
-          time: data['time'] ?? '',
-          isRead: data['isRead'] ?? false,
-        );
-      }));
+      _localNotifications.addAll(
+        snapshot.docs.map((doc) {
+          final data = doc.data();
+          return NotificationModel(
+            id: data['id'] ?? '',
+            message: data['message'] ?? '',
+            eventId: data['eventId'] ?? '',
+            time: data['time'] ?? '',
+            isRead: data['isRead'] ?? false,
+            scheduledFor: (data['scheduledFor'] as Timestamp?)?.toDate(),
+          );
+        }).toList()
+          ..sort((a, b) {
+            final aTime = a.scheduledFor ?? _parseTime(a.time);
+            final bTime = b.scheduledFor ?? _parseTime(b.time);
+            return bTime.compareTo(aTime); // newest first
+          }),
+      );
     } catch (e) {
-      debugPrint('Error loading notifications: $e');
+      debugPrint('🔔 Error loading notifications: $e');
     }
   }
 
+// Converts "2:39 PM" style string to a comparable DateTime (uses today's date)
+  DateTime _parseTime(String timeStr) {
+    try {
+      final parts = timeStr.split(RegExp(r'[: ]'));
+      int hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      final isPm = parts[2].toUpperCase() == 'PM';
+      if (isPm && hour != 12) hour += 12;
+      if (!isPm && hour == 12) hour = 0;
+      final now = DateTime.now();
+      return DateTime(now.year, now.month, now.day, hour, minute);
+    } catch (_) {
+      return DateTime(2000); // fallback to very old date if parsing fails
+    }
+  }
   // ── Mark as read ──────────────────────────────────────────────────────────
   Future<void> markAsRead(String id, String uid) async {
     final index = _localNotifications.indexWhere((n) => n.id == id);
@@ -178,5 +200,48 @@ class NotificationService {
     dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     return '$hour:${dt.minute.toString().padLeft(2, '0')} $period';
+  }
+  static Future<void> showPollNotification({
+    required String pollId,
+    required String question,
+  }) async {
+    await init();
+
+    await _notifications.show(
+      pollId.hashCode,
+      '🗳️ New Poll Available!',
+      '$question — cast your vote!',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'poll_notifications',
+          'Poll Notifications',
+          channelDescription: 'Notifications for new polls',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+      ),
+    );
+  }
+  static Future<void> showForegroundNotification({
+    required String title,
+    required String body,
+  }) async {
+    await init();
+    await _notifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'poll_notifications',
+          'Poll Notifications',
+          channelDescription: 'Notifications for new polls',
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+      ),
+    );
   }
 }

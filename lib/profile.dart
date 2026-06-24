@@ -22,6 +22,8 @@ class ProfileScreen extends StatefulWidget {
   final Set<Event> addedEvents;
   final Function(Event) onToggleFavorite;
   final Function(Event) onAddToCalendar;
+  final Function(int) onSwitchTab;
+
 
   const ProfileScreen({
     super.key,
@@ -31,6 +33,8 @@ class ProfileScreen extends StatefulWidget {
     required this.addedEvents,
     required this.onToggleFavorite,
     required this.onAddToCalendar,
+    required this.onSwitchTab,
+
   });
 
   @override
@@ -138,8 +142,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (updated == true) _loadPreferences();
   }
 
-  void _goToNotifications() {
-    Navigator.push(
+  void _goToNotifications() async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => NotificationsScreen(
@@ -151,9 +155,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-  }
 
-  @override
+    // If user tapped a poll notification switch to community tab
+    if (result == 'community' && context.mounted) {
+      widget.onSwitchTab(2); // ← just switch tab, don't pop profile
+    }
+  }  @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: widget.themeModeNotifier,

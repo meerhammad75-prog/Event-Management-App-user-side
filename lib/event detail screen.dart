@@ -201,9 +201,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         ),
                       ],
                     ),
-                    child: const Text(
-                      'Lorem ipsum dolor sit amet consectetur. Sed volutpat euismod enim accumsan quam posuere. Tortor pretium lorem dui metus amet in sed. Sodales volutpat maecenas et quisque nibh ultrices in nulla. Enim fames quam turpis pellentesque vivamus massa.Lorem ipsum dolor sit amet consectetur. Sed volutpat euismod enim accumsan quam posuere. Tortor pretium lorem dui metus amet in sed. Sodales volutpat maecenas et quisque nibh ultrices in nulla. Enim fames quam turpis pellentesque vivamus massa.Lorem ipsum dolor sit amet consectetur. Sed volutpat euismod enim accumsan',
-                      style: TextStyle(
+                    child: Text(
+                      widget.event.description.isNotEmpty
+                          ? widget.event.description
+                          : 'No description available.',
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF444444),
                         height: 1.6,
