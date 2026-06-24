@@ -267,7 +267,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
           SizedBox(width: 8),
         ],*/
       ),
-      //
+
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFCF3232)))
